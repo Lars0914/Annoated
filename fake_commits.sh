@@ -1,6 +1,10 @@
-#!/bin/bash
+# -------------------------------
+# Fake commit generator (PowerShell)
+# -------------------------------
 
-# Start and end dates
+$gitUserName = "Lars0914"
+$gitEmail    = "https://github.com/Lars0914/Annoated.git"  # must be verified in GitHub
+
 $startDate = Get-Date "2018-01-01"
 $endDate   = Get-Date "2025-03-15"
 $current   = $startDate
@@ -8,24 +12,24 @@ $current   = $startDate
 $rand = New-Object System.Random
 
 while ($current -le $endDate) {
-    # Get start of week (Monday)
-    $weekStart = $current.AddDays(-( [int]$current.DayOfWeek - 1))
+    # Get Monday of this week
+    $weekStart = $current.AddDays(-([int]$current.DayOfWeek - 1))
     if ($current.DayOfWeek -eq "Sunday") {
         $weekStart = $current.AddDays(-6)
     }
 
-    # Pick 4 random days (Mon–Sun) in this week
+    # Pick 4 random days in the week (0 = Mon, 6 = Sun)
     $days = @(0..6) | Sort-Object { $rand.Next() } | Select-Object -First 4
 
     foreach ($offset in $days) {
         $day = $weekStart.AddDays($offset)
 
         if ($day -ge $startDate -and $day -le $endDate) {
-            # Pick number of commits (1–3)
+            # Random number of commits: 1 to 3
             $commitCount = $rand.Next(1,4)
 
             for ($i=0; $i -lt $commitCount; $i++) {
-                # Random hour (9–18) and minute (0–59)
+                # Random commit time (09:00–18:59)
                 $hour   = $rand.Next(9,19)
                 $minute = $rand.Next(0,60)
 
@@ -43,8 +47,8 @@ while ($current -le $endDate) {
         }
     }
 
-    # Move to next week
+    # Jump to next week
     $current = $weekStart.AddDays(7)
 }
 
-git push origin main   # change 'main' if default branch differs
+git push origin main   # change "main" if your repo’s default branch differs
