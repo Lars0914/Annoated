@@ -12,7 +12,7 @@ do
   week_start=$(date -d "$current_date -$(($(date -d "$current_date" +%u) - 1)) days" +%Y-%m-%d)
 
   # Pick 4 random days (0 = Monday … 6 = Sunday)
-  days=($(shuf -i 0-6 -n 4))
+  days=($(shuf -i 0-6 -n 3))
 
   for offset in "${days[@]}"; do
     day=$(date -d "$week_start +$offset days" +%Y-%m-%d)
