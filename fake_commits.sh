@@ -1,29 +1,50 @@
 #!/bin/bash
 
 # Start and end dates
-start_date="2018-01-01"
-end_date="2018-03-20"
+$startDate = Get-Date "2018-01-01"
+$endDate   = Get-Date "2025-03-15"
+$current   = $startDate
 
-current_date="$start_date"
+$rand = New-Object System.Random
 
-while [ "$(date -d "$current_date" +%Y-%m-%d)" != "$(date -d "$end_date + 1 day" +%Y-%m-%d)" ]
-do
-  # Day of week (1 = Monday, 7 = Sunday)
-  day_of_week=$(date -d "$current_date" +%u)
+while ($current -le $endDate) {
+    # Get start of week (Monday)
+    $weekStart = $current.AddDays(-( [int]$current.DayOfWeek - 1))
+    if ($current.DayOfWeek -eq "Sunday") {
+        $weekStart = $current.AddDays(-6)
+    }
 
-  if [ "$day_of_week" -le 5 ]; then
-    # 3 commits at different times
-    for hour in 09 13 17
-    do
-      GIT_AUTHOR_DATE="$current_date $hour:00:00" \
-      GIT_COMMITTER_DATE="$current_date $hour:00:00" \
-      git commit --allow-empty -m "Commit on $current_date at $hour:00"
-    done
-  fi
+    # Pick 4 random days (Mon–Sun) in this week
+    $days = @(0..6) | Sort-Object { $rand.Next() } | Select-Object -First 4
 
-  # Move to next day
-  current_date=$(date -I -d "$current_date + 1 day")
-done
+    foreach ($offset in $days) {
+        $day = $weekStart.AddDays($offset)
 
-# Push everything to GitHub
-git push origin main
+        if ($day -ge $startDate -and $day -le $endDate) {
+            # Pick number of commits (1–3)
+            $commitCount = $rand.Next(1,4)
+
+            for ($i=0; $i -lt $commitCount; $i++) {
+                # Random hour (9–18) and minute (0–59)
+                $hour   = $rand.Next(9,19)
+                $minute = $rand.Next(0,60)
+
+                $commitDate = $day.Date.AddHours($hour).AddMinutes($minute)
+                $dateString = $commitDate.ToString("yyyy-MM-ddTHH:mm:ss")
+
+                $env:GIT_AUTHOR_DATE    = $dateString
+                $env:GIT_COMMITTER_DATE = $dateString
+
+                git -c user.name="$gitUserName" -c user.email="$gitEmail" `
+                    commit --allow-empty -m "Commit on $dateString"
+
+                Write-Host "Committed $dateString"
+            }
+        }
+    }
+
+    # Move to next week
+    $current = $weekStart.AddDays(7)
+}
+
+git push origin main   # change 'main' if default branch differs
