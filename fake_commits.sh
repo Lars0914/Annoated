@@ -1,54 +1,47 @@
-# -------------------------------
-# Fake commit generator (PowerShell)
-# -------------------------------
+#!/bin/bash
 
-$gitUserName = "Lars0914"
-$gitEmail    = "https://github.com/Lars0914/Annoated.git"  # must be verified in GitHub
+# Start and end dates
+start_date="2018-01-01"
+end_date="2025-08-15"
 
-$startDate = Get-Date "2018-01-01"
-$endDate   = Get-Date "2025-03-15"
-$current   = $startDate
+current_date="$start_date"
 
-$rand = New-Object System.Random
+while [ "$(date -d "$current_date" +%Y-%m-%d)" != "$(date -d "$end_date + 1 day" +%Y-%m-%d)" ]
+do
+  # Get Monday of the current week
+  week_start=$(date -d "$current_date -$(($(date -d "$current_date" +%u) - 1)) days" +%Y-%m-%d)
 
-while ($current -le $endDate) {
-    # Get Monday of this week
-    $weekStart = $current.AddDays(-([int]$current.DayOfWeek - 1))
-    if ($current.DayOfWeek -eq "Sunday") {
-        $weekStart = $current.AddDays(-6)
-    }
+  # Pick 4 random days (0 = Monday … 6 = Sunday)
+  days=($(shuf -i 0-6 -n 4))
 
-    # Pick 4 random days in the week (0 = Mon, 6 = Sun)
-    $days = @(0..6) | Sort-Object { $rand.Next() } | Select-Object -First 4
+  for offset in "${days[@]}"; do
+    day=$(date -d "$week_start +$offset days" +%Y-%m-%d)
 
-    foreach ($offset in $days) {
-        $day = $weekStart.AddDays($offset)
+    # Make sure it's within range
+    if [ "$(date -d "$day" +%s)" -ge "$(date -d "$start_date" +%s)" ] && \
+       [ "$(date -d "$day" +%s)" -le "$(date -d "$end_date" +%s)" ]; then
 
-        if ($day -ge $startDate -and $day -le $endDate) {
-            # Random number of commits: 1 to 3
-            $commitCount = $rand.Next(1,4)
+      # Pick 1–3 commits for this day
+      commit_count=$(( (RANDOM % 3) + 1 ))
 
-            for ($i=0; $i -lt $commitCount; $i++) {
-                # Random commit time (09:00–18:59)
-                $hour   = $rand.Next(9,19)
-                $minute = $rand.Next(0,60)
+      for ((i=1; i<=commit_count; i++)); do
+        # Random hour (9–18) and minute (0–59)
+        hour=$(( (RANDOM % 10) + 9 ))
+        minute=$(( RANDOM % 60 ))
+        timestamp="$day $(printf "%02d:%02d:00" $hour $minute)"
 
-                $commitDate = $day.Date.AddHours($hour).AddMinutes($minute)
-                $dateString = $commitDate.ToString("yyyy-MM-ddTHH:mm:ss")
+        GIT_AUTHOR_DATE="$timestamp" \
+        GIT_COMMITTER_DATE="$timestamp" \
+        git commit --allow-empty -m "Commit on $timestamp"
 
-                $env:GIT_AUTHOR_DATE    = $dateString
-                $env:GIT_COMMITTER_DATE = $dateString
+        echo "Committed $timestamp"
+      done
+    fi
+  done
 
-                git -c user.name="$gitUserName" -c user.email="$gitEmail" `
-                    commit --allow-empty -m "Commit on $dateString"
+  # Move forward one week
+  current_date=$(date -I -d "$week_start + 7 days")
+done
 
-                Write-Host "Committed $dateString"
-            }
-        }
-    }
-
-    # Jump to next week
-    $current = $weekStart.AddDays(7)
-}
-
-git push origin main   # change "main" if your repo’s default branch differs
+# Push everything to GitHub
+git push origin main
