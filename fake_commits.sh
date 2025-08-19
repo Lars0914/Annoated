@@ -2,7 +2,7 @@
 
 # Start and end dates
 start_date="2019-01-01"
-end_date="2010-12-15"
+end_date="2019-12-15"
 
 current_date="$start_date"
 
