@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start and end dates
-start_date="2020-01-01"
+start_date="2020-01-15"
 end_date="2020-12-15"
 
 current_date="$start_date"
